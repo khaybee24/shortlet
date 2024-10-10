@@ -1,0 +1,187 @@
+const User = require('../model/userModel');
+const bcrypt = require('bcrypt');
+const crypto = require('crypto');
+const nodemailer = require('nodemailer')
+const jwt = require('jsonwebtoken');
+
+const SignUp = async (req, res)=> {
+    try {
+        const {name, email, password,confirmPassword, role} = req.body;
+
+        if (password !== confirmPassword) {
+          return res.status(403).json({message: "check both password and confirm password and try again"})
+        }
+    
+        const user = await User.findOne({email: email});
+
+        if (user) {
+            return res.status(400).json({message: 'user already exists please login'})
+        };
+
+        const Hash = await bcrypt.hash(password, 10);
+
+        const newUser = new User({
+            name:name,
+            email:email,
+            password:Hash,
+            role:role
+        })
+
+        await newUser.save();
+
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+              user: process.env.USER_EMAIL,
+              pass: process.env.USER_PASSWORD,
+            },
+          });
+      
+          // Define the email options
+          const mailOptions = {
+            from: process.env.USER_EMAIL,
+            to: `${newUser.email}`,
+            subject: "Welcome",
+            text: `Dear ${newUser.name} welcome to our website`
+          };
+      
+          // Send the email
+          transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+              console.log("Error occurred:", error);
+            } else {
+              console.log("Email sent:", info.response);
+            }
+          });
+
+        return res.status(200).json({message: 'User saved successfully', newUser});
+    } catch (error) {
+      console.log(error);
+      
+        return res.status(500).json({message:'internal server error'});
+    }
+
+}
+
+
+const Login = async (req,res) => {
+    try {
+        const{email,password} = req.body;
+
+        const checkUser = await User.findOne({email: email});
+
+        if (!checkUser) {
+            return res.status(404).json({message: 'User not found'});
+        }
+
+        const passCheck = await bcrypt.compare(password, checkUser.password)
+
+        if (!passCheck) {
+            return res.status(404).json({message: 'incorrect password'});
+        };
+        const expirationTime = process.env.expires_In;
+        const payload = {
+          userId: checkUser._id,
+        };
+        
+        const token = jwt.sign(
+          payload,
+          process.env.JWT_SECRET,
+          { expiresIn: expirationTime }
+          );
+          // console.log(token)
+          
+        const dataInfo = {
+          status: "success",
+          message: "Admin Logged in successful",
+          access_token: token,
+        };
+
+        return res.status(200).json({message: "user logged in successfully", dataInfo})
+
+    } catch (error) {
+      console.log(error);
+      
+        return res.status(500).json({message:"internal server error"})
+}};
+
+const ForgotPassword = async (req, res) => {
+    try {
+        const {email} = req.body
+
+        const user = await User.findOne({email: email})
+
+        if (!user) {
+            return res.status(404).json({message:"user not found please register"})
+        }
+
+        const token = crypto.randomBytes(40).toString('hex')
+        const tokenExpiration = Date.now() + 3600000
+
+        user.resetToken = token;
+        user.resetTokenExpiry = tokenExpiration;
+        
+        await user.save();
+
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+              user: process.env.USER_EMAIL,
+              pass: process.env.USER_PASSWORD,
+            },
+          });
+      
+          // Define the email options
+          const mailOptions = {
+            from: process.env.USER_EMAIL,
+            to: `${user.email}`,
+            subject: "Password Reset",
+            text: `You are receiving this because you (or someone else) have requested the reset of the password for your account.
+        Please click on the following link, or paste this into your browser to complete the process:
+                http://localhost:${port}/api/v1/users/reset/${token}
+                If you did not request this, please ignore this email and your password will remain unchanged.`
+          };
+      
+          // Send the email
+          transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+              console.log("Error occurred:", error);
+            } else {
+              console.log("Email sent:", info.response);
+            }
+          });
+
+        return res.status(200).json({message: 'check your mail'})
+    } catch (error) {
+        return res.status(500).json({message: 'server error'});
+    }
+};
+
+
+const ResetPassword = async (req, res) => {
+    try {
+        const {token} = req.params
+
+        const {password} = req.body
+
+        const user = await User.findOne({resetToken: token, resetTokenExpiry: {$gt: Date.now() } })
+
+        if(!user) {
+            return res.status(404).json({message:"invalid token or expired"})
+        }
+
+        hashpasword = await bcrypt.hash(password, 12);
+
+        user.password = hashpasword;
+        user.resetToken = undefined;
+        user.resetTokenExpiry = undefined;
+
+        await user.save()
+
+        return res.status(200).json({message: 'user password updated successfully'})
+    } catch (error) {
+        return res.status(500).json({message:" internal server error"})
+    }
+}
+
+module.exports = { SignUp, Login, ForgotPassword, ResetPassword }
