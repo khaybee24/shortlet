@@ -3,6 +3,9 @@ const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer')
 const jwt = require('jsonwebtoken');
+const properties = require('../model/properties');
+const searchParam = require('../middleware/search')
+
 
 const SignUp = async (req, res)=> {
     try {
@@ -82,6 +85,7 @@ const Login = async (req,res) => {
         const expirationTime = process.env.expires_In;
         const payload = {
           userId: checkUser._id,
+          role: checkUser.role
         };
         
         const token = jwt.sign(
@@ -184,4 +188,24 @@ const ResetPassword = async (req, res) => {
     }
 }
 
-module.exports = { SignUp, Login, ForgotPassword, ResetPassword }
+const search = async (req, res) => {
+
+  try {
+   const query = searchParam
+    const property = await properties.find({query})
+
+    if (!property) {
+      return res.status(404).json({message: 'No properties found'})
+    }
+    
+    return res.status(200).json({message: 'properties found', property})
+    
+  } catch (error) {
+    console.log(error);
+    
+    return res.status(500).json({message:"internal server error"})
+  }
+
+}
+
+module.exports = { SignUp, Login, ForgotPassword, ResetPassword, search }

@@ -23,7 +23,7 @@ const isAuthenticated = (req, res, next) => {
         const token =req.headers.authorization.split(" ")[1];
 
         if (!token) {
-            return res.status(401).json({message: 'unauthorized'});
+            return res.status(401).json({message: 'unauthorized 🔐🔒🔐🔐'});
         }
 
         const decoded = jwtVerify(token, process.env.JWT_SECRET);
