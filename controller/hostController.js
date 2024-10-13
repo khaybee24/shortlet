@@ -1,6 +1,6 @@
 const properties = require('../model/properties');
 const cloudinary = require('../utils/cloudinary')
-const user = require('../model/userModel')
+
 
 
 

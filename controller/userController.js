@@ -3,9 +3,9 @@ const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer')
 const jwt = require('jsonwebtoken');
-const properties = require('../model/properties');
-const searchParam = require('../middleware/search');
 const Property = require('../model/properties');
+const port = process.env.PORT
+
 
 
 const SignUp = async (req, res)=> {
@@ -62,7 +62,7 @@ const SignUp = async (req, res)=> {
     } catch (error) {
       console.log(error);
       
-        return res.status(500).json({message:'internal server error'});
+        return res.status(500).json({message:'internal server error',error});
     }
 
 }
@@ -107,7 +107,7 @@ const Login = async (req,res) => {
     } catch (error) {
       console.log(error);
       
-        return res.status(500).json({message:"internal server error"})
+        return res.status(500).json({message:"internal server error",error})
 }};
 
 const ForgotPassword = async (req, res) => {
@@ -158,7 +158,7 @@ const ForgotPassword = async (req, res) => {
 
         return res.status(200).json({message: 'check your mail'})
     } catch (error) {
-        return res.status(500).json({message: 'server error'});
+        return res.status(500).json({message: 'server error',error});
     }
 };
 
@@ -175,7 +175,7 @@ const ResetPassword = async (req, res) => {
             return res.status(404).json({message:"invalid token or expired"})
         }
 
-        hashpasword = await bcrypt.hash(password, 12);
+        const hashpasword = await bcrypt.hash(password, 12);
 
         user.password = hashpasword;
         user.resetToken = undefined;
@@ -185,7 +185,7 @@ const ResetPassword = async (req, res) => {
 
         return res.status(200).json({message: 'user password updated successfully'})
     } catch (error) {
-        return res.status(500).json({message:" internal server error"})
+        return res.status(500).json({message:" internal server error",error})
     }
 }
 
@@ -222,14 +222,14 @@ const search = async (req, res) => {
   } catch (error) {
     console.log(error);
     
-    return res.status(500).json({message:"internal server error"})
+    return res.status(500).json({message:"internal server error",error})
   }
 
 }
 
 const fetchAllProperties = async (req, res) =>{
   try {
-    const properties = await property.find({})
+    const properties = await Property.find({})
     
     if (!properties || properties.length === 0) {
       return res.status(404).json({message: 'No properties found'})
@@ -238,7 +238,7 @@ const fetchAllProperties = async (req, res) =>{
     return res.status(200).json({message: 'properties found', properties})
 
   } catch (error) {
-    return res.status(500).json({message:"internal server error"})
+    return res.status(500).json({message:"internal server error",error})
   }
 }
 

@@ -14,7 +14,7 @@ const jwtVerify =(token) =>{
 
         return jwt.verify(token, process.env.JWT_SECRET);
     } catch (error){
-        return false;
+        return error;
     }
 };
 
@@ -34,7 +34,7 @@ const isAuthenticated = (req, res, next) => {
     req.user = decoded;
     next();
     } catch (error) {
-        return res.status(401).json({message: "Authentication failed: 🔒🔒🔒🔒🔒"})
+        return res.status(401).json({message: "Authentication failed: 🔒🔒🔒🔒🔒",error})
     }
 }
 
