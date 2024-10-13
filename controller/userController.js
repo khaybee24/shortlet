@@ -4,7 +4,8 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer')
 const jwt = require('jsonwebtoken');
 const properties = require('../model/properties');
-const searchParam = require('../middleware/search')
+const searchParam = require('../middleware/search');
+const Property = require('../model/properties');
 
 
 const SignUp = async (req, res)=> {
@@ -189,12 +190,30 @@ const ResetPassword = async (req, res) => {
 }
 
 const search = async (req, res) => {
+  const { propertyName, location, price } = req.query;
 
   try {
-   const query = searchParam
-    const property = await properties.find({query})
+    const query = {};
 
-    if (!property) {
+    // Add parameters to the query object only if they exist
+    if (propertyName) {
+      query.propertyName = propertyName; // Add propertyName to query
+    }
+    if (location) {
+      query.location = location; // Add location to query
+    }
+    if (price) {
+      query.price = price; // Add price to query (ensure price is a number if necessary)
+
+   if (isNaN(price)) {
+
+    return res.status(404).json({message:"price must be a number"});
+   }}
+  
+    const properties = await Property.find(query)
+
+    
+    if (!property || property.length === 0) {
       return res.status(404).json({message: 'No properties found'})
     }
     
@@ -208,4 +227,19 @@ const search = async (req, res) => {
 
 }
 
-module.exports = { SignUp, Login, ForgotPassword, ResetPassword, search }
+const fetchAllProperties = async (req, res) =>{
+  try {
+    const properties = await property.find({})
+    
+    if (!properties || properties.length === 0) {
+      return res.status(404).json({message: 'No properties found'})
+    }
+   
+    return res.status(200).json({message: 'properties found', properties})
+
+  } catch (error) {
+    return res.status(500).json({message:"internal server error"})
+  }
+}
+
+module.exports = { SignUp, Login, ForgotPassword, ResetPassword, search, fetchAllProperties }
