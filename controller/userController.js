@@ -213,11 +213,11 @@ const search = async (req, res) => {
     const properties = await Property.find(query)
 
     
-    if (!property || property.length === 0) {
+    if (!properties || properties.length === 0) {
       return res.status(404).json({message: 'No properties found'})
     }
     
-    return res.status(200).json({message: 'properties found', property})
+    return res.status(200).json({message: 'properties found', properties})
     
   } catch (error) {
     console.log(error);
