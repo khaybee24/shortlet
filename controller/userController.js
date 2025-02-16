@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 const User = require('../model/userModel');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
@@ -32,15 +33,10 @@ const SignUp = async (req, res)=> {
         })
 
         await newUser.save();
+        const { password: _, ...userData } = newUser.toObject();
 
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: {
-              user: process.env.USER_EMAIL,
-              pass: process.env.USER_PASSWORD,
-            },
-          });
-      
+      const transporter = require('../services/nodemailer')
+
           // Define the email options
           const mailOptions = {
             from: process.env.USER_EMAIL,
@@ -58,7 +54,8 @@ const SignUp = async (req, res)=> {
             }
           });
 
-        return res.status(200).json({message: 'User saved successfully', newUser});
+
+        return res.status(200).json({message: 'User saved successfully', user:userData});
     } catch (error) {
       console.log(error);
       
@@ -89,17 +86,35 @@ const Login = async (req,res) => {
           role: checkUser.role
         };
         
-        const token = jwt.sign(
+        const access_token = jwt.sign(
           payload,
           process.env.JWT_SECRET,
           { expiresIn: expirationTime }
           );
           // console.log(token)
           
+            
+        const refresh_token = jwt.sign(
+          payload,
+          process.env.JWT_SECRET,
+          { expiresIn: '1w' }
+          );
+
+          res.cookie("access_token", access_token,  { 
+            httpOnly: true,
+            maxAge: 24*60*60*1000
+          })
+
+          
+          res.cookie('refresh_token',refresh_token, { 
+            httpOnly: true,
+            maxAge: 7*24*60*60*1000
+          })
+
         const dataInfo = {
           status: "success",
-          message: "Admin Logged in successful",
-          access_token: token,
+          message: "User Login successful",
+          access_token
         };
 
         return res.status(200).json({message: "user logged in successfully", dataInfo})
@@ -141,10 +156,11 @@ const ForgotPassword = async (req, res) => {
             from: process.env.USER_EMAIL,
             to: `${user.email}`,
             subject: "Password Reset",
-            text: `You are receiving this because you (or someone else) have requested the reset of the password for your account.
-        Please click on the following link, or paste this into your browser to complete the process:
-                http://localhost:${port}/api/v1/users/reset/${token}
-                If you did not request this, please ignore this email and your password will remain unchanged.`
+            text: `You are receiving this because you (or someone else) 
+            have requested the reset of the password for your account.
+            Please click on the following link, or paste this into your browser to complete the process:
+            http://localhost:${port}/api/v1/users/reset/${token}
+            If you did not request this, please ignore this email and your password will remain unchanged.`
           };
       
           // Send the email
@@ -229,7 +245,7 @@ const search = async (req, res) => {
 
 const fetchAllProperties = async (req, res) =>{
   try {
-    const properties = await Property.find({})
+    const properties = await Property.find({}).limit(10).lean()
     
     if (!properties || properties.length === 0) {
       return res.status(404).json({message: 'No properties found'})

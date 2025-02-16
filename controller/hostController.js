@@ -4,6 +4,7 @@ const cloudinary = require('../utils/cloudinary')
 
 
 
+
 const postProperties = async (req, res) => {
     const {propertyName,location, date , price, description,amenities} = req.body;
 

@@ -9,7 +9,7 @@ const Host = (req, res, next) => {
 }
 
 const Admin = (req, res, next) => {
-    if(req.user && req.user.role === 'Admin') {
+    if(req.user && req.user.role === 'admin') {
 
         return next()
 } else {
